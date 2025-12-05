@@ -1,16 +1,15 @@
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 
 // ============ MultiVault Addresses ============
 const MULTIVAULT_INTUITION = "0x6E35cF57A41fA15eA0EaE9C33e751b01A784Fe7e"; // Intuition Mainnet
-const MULTIVAULT_BASE = "0x6E35cF57A41fA15eA0EaE9C33e751b01A784Fe7e";
-const MULTIVAULT_BASE_SEPOLIA = "0x2Ece8D4dEdcB9918A398528f3fa4688b1d2CAB91";
+const MULTIVAULT_TESTNET = "0x2Ece8D4dEdcB9918A398528f3fa4688b1d2CAB91"; // Intuition Testnet
 
 // ============ Fee Recipient ============
-const GNOSIS_SAFE = "0x68c72d6c3d81B20D8F81e4E41BA2F373973141eD";
+const FEE_RECIPIENT = process.env.FEE_RECIPIENT || "0x68c72d6c3d81B20D8F81e4E41BA2F373973141eD";
 
 // ============ Initial Fee Configuration ============
-const INITIAL_CREATION_FEE = ethers.parseEther("0.1"); // 0.1 TRUST
-const INITIAL_DEPOSIT_FEE = ethers.parseEther("0"); // No fixed deposit fee
+const INITIAL_CREATION_FEE = ethers.parseEther("0"); // 0 TRUST (no creation fee)
+const INITIAL_DEPOSIT_FEE = ethers.parseEther("0.1"); // 0.1 TRUST fixed deposit fee
 const INITIAL_DEPOSIT_PERCENTAGE = 500n; // 5%
 
 async function main() {
@@ -36,25 +35,21 @@ async function main() {
     // Intuition Mainnet
     multiVault = MULTIVAULT_INTUITION;
     console.log("Deploying to Intuition Mainnet");
-  } else if (chainId === 8453n) {
-    // Base Mainnet
-    multiVault = MULTIVAULT_BASE;
-    console.log("Deploying to Base Mainnet");
-  } else if (chainId === 84532n) {
-    // Base Sepolia
-    multiVault = MULTIVAULT_BASE_SEPOLIA;
-    console.log("Deploying to Base Sepolia");
+  } else if (chainId === 13579n) {
+    // Intuition Testnet
+    multiVault = MULTIVAULT_TESTNET;
+    console.log("Deploying to Intuition Testnet");
   } else if (chainId === 31337n) {
-    // Local Hardhat - use Sepolia address for testing
-    multiVault = MULTIVAULT_BASE_SEPOLIA;
-    console.log("Deploying to local network (using Sepolia MultiVault)");
+    // Local Hardhat - use Testnet address for testing
+    multiVault = MULTIVAULT_TESTNET;
+    console.log("Deploying to local network (using Testnet MultiVault)");
   } else {
     throw new Error(`Unsupported chain ID: ${chainId}`);
   }
 
   console.log("\nConfiguration:");
   console.log("- MultiVault address:", multiVault);
-  console.log("- Fee recipient (Gnosis Safe):", GNOSIS_SAFE);
+  console.log("- Fee recipient:", FEE_RECIPIENT);
   console.log("- Admin 1:", admin1);
   console.log("- Admin 2:", admin2);
   console.log("- Creation fee:", ethers.formatEther(INITIAL_CREATION_FEE), "ETH");
@@ -65,7 +60,7 @@ async function main() {
   const SofiaFeeProxy = await ethers.getContractFactory("SofiaFeeProxy");
   const proxy = await SofiaFeeProxy.deploy(
     multiVault,
-    GNOSIS_SAFE,
+    FEE_RECIPIENT,
     INITIAL_CREATION_FEE,
     INITIAL_DEPOSIT_FEE,
     INITIAL_DEPOSIT_PERCENTAGE,
@@ -90,14 +85,14 @@ async function main() {
       await deployTx.wait(5);
     }
 
-    console.log("Verifying contract on Basescan...");
+    console.log("Verifying contract on explorer...");
     try {
       const { run } = await import("hardhat");
       await run("verify:verify", {
         address: proxyAddress,
         constructorArguments: [
           multiVault,
-          GNOSIS_SAFE,
+          FEE_RECIPIENT,
           INITIAL_CREATION_FEE,
           INITIAL_DEPOSIT_FEE,
           INITIAL_DEPOSIT_PERCENTAGE,

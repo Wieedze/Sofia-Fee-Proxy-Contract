@@ -4,122 +4,58 @@ Smart contract proxy for Intuition MultiVault with fee collection for the Sofia 
 
 ## Overview
 
-The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition MultiVault contract. It collects fees on transactions (atom/triple creation and deposits) and forwards them to a Gnosis Safe multisig.
+The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition MultiVault contract. It collects fees on transactions (atom/triple creation and deposits) and forwards them to a fee recipient address.
 
 ## Fee Structure
 
 | Operation | Fixed Fee | Percentage Fee |
 |-----------|-----------|----------------|
-| Create Atoms | 0.1 TRUST | 0% |
-| Create Triples | 0.1 TRUST | 0% |
-| Deposit | 0.1 TRUST | 2% |
+| Create Atoms | 0 TRUST | 0% |
+| Create Triples | 0 TRUST | 0% |
+| Deposit | 0.1 TRUST | 5% |
 
 ### Example
 
 For a 10 TRUST deposit:
 - Fixed fee: 0.1 TRUST
-- Percentage fee: 0.2 TRUST (2% of 10)
-- **Total fee: 0.3 TRUST**
-- User sends: 10.3 TRUST
+- Percentage fee: 0.5 TRUST (5% of 10)
+- **Total fee: 0.6 TRUST**
+- User sends: 10.6 TRUST
 - Deposited to MultiVault: 10 TRUST
 
-## Architecture
+## Deployed Contract
 
-```
-sofia-contracts/
-├── src/
-│   ├── SofiaFeeProxy.sol          # Main contract
-│   ├── interfaces/
-│   │   └── IEthMultiVault.sol     # MultiVault interface
-│   └── libraries/
-│       └── Errors.sol             # Custom errors
-├── test/
-│   └── SofiaFeeProxy.t.sol        # Tests
-├── script/
-│   └── Deploy.s.sol               # Deployment scripts
-├── foundry.toml
-└── README.md
-```
+| Network | Address |
+|---------|---------|
+| Intuition Mainnet | `0x880E213224Ce5B6B8a01A21D4318819c67146533` |
 
 ## Installation
 
 ```bash
-# Install Foundry if not already installed
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-
-# Install dependencies
-forge install
+npm install
 ```
 
 ## Build
 
 ```bash
-forge build
+npx hardhat compile
 ```
 
 ## Test
 
 ```bash
-# Run all tests
-forge test
-
-# Run tests with verbosity
-forge test -vvv
-
-# Run specific test
-forge test --match-test test_DepositCollectsFees -vvv
-
-# Run tests with gas report
-forge test --gas-report
+npm test
 ```
 
-## Local Deployment (Anvil)
+## Deployment
 
 ```bash
-# Start local node
-anvil
+# Testnet
+npm run deploy:testnet
 
-# In another terminal, deploy
-forge script script/Deploy.s.sol:DeployLocalScript --rpc-url http://127.0.0.1:8545 --broadcast
+# Mainnet
+npm run deploy:mainnet
 ```
-
-## Testnet Deployment (Base Sepolia)
-
-1. Create `.env` file from `.env.example`:
-```bash
-cp .env.example .env
-```
-
-2. Fill in the environment variables:
-```
-PRIVATE_KEY=your_private_key_here
-BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
-BASESCAN_API_KEY=your_basescan_api_key
-ADMIN_1=0x...
-ADMIN_2=0x...
-ADMIN_3=0x...
-```
-
-3. Deploy:
-```bash
-source .env
-forge script script/Deploy.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast --verify
-```
-
-## Mainnet Deployment (Base)
-
-```bash
-source .env
-forge script script/Deploy.s.sol:DeployScript --rpc-url $BASE_RPC_URL --broadcast --verify
-```
-
-## Contract Addresses
-
-| Network | Address |
-|---------|---------|
-| Base Sepolia | TBD |
-| Base Mainnet | TBD |
 
 ## Admin Functions
 
@@ -130,13 +66,6 @@ Only whitelisted admins can call these functions:
 - `setDepositPercentageFee(uint256)` - Update deposit percentage (base 10000)
 - `setFeeRecipient(address)` - Update fee recipient
 - `setWhitelistedAdmin(address, bool)` - Add/remove admins
-
-## Security Considerations
-
-- No upgradeability (immutable contract)
-- Fees are transferred directly to multisig (no accumulation)
-- Maximum fee percentage capped at 100%
-- Zero address checks on critical parameters
 
 ## License
 
