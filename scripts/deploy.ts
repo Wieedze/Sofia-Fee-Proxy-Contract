@@ -8,8 +8,7 @@ const MULTIVAULT_TESTNET = "0x2Ece8D4dEdcB9918A398528f3fa4688b1d2CAB91"; // Intu
 const FEE_RECIPIENT = process.env.FEE_RECIPIENT || "0x68c72d6c3d81B20D8F81e4E41BA2F373973141eD";
 
 // ============ Initial Fee Configuration ============
-const INITIAL_CREATION_FEE = ethers.parseEther("0"); // 0 TRUST (no creation fee)
-const INITIAL_DEPOSIT_FEE = ethers.parseEther("0.1"); // 0.1 TRUST fixed deposit fee
+const INITIAL_DEPOSIT_FEE = ethers.parseEther("0.1"); // 0.1 TRUST fixed fee per deposit
 const INITIAL_DEPOSIT_PERCENTAGE = 500n; // 5%
 
 async function main() {
@@ -52,8 +51,7 @@ async function main() {
   console.log("- Fee recipient:", FEE_RECIPIENT);
   console.log("- Admin 1:", admin1);
   console.log("- Admin 2:", admin2);
-  console.log("- Creation fee:", ethers.formatEther(INITIAL_CREATION_FEE), "ETH");
-  console.log("- Deposit fixed fee:", ethers.formatEther(INITIAL_DEPOSIT_FEE), "ETH");
+  console.log("- Deposit fixed fee:", ethers.formatEther(INITIAL_DEPOSIT_FEE), "TRUST");
   console.log("- Deposit percentage:", Number(INITIAL_DEPOSIT_PERCENTAGE) / 100, "%");
 
   // Deploy SofiaFeeProxy
@@ -61,7 +59,6 @@ async function main() {
   const proxy = await SofiaFeeProxy.deploy(
     multiVault,
     FEE_RECIPIENT,
-    INITIAL_CREATION_FEE,
     INITIAL_DEPOSIT_FEE,
     INITIAL_DEPOSIT_PERCENTAGE,
     admins
@@ -93,7 +90,6 @@ async function main() {
         constructorArguments: [
           multiVault,
           FEE_RECIPIENT,
-          INITIAL_CREATION_FEE,
           INITIAL_DEPOSIT_FEE,
           INITIAL_DEPOSIT_PERCENTAGE,
           admins,

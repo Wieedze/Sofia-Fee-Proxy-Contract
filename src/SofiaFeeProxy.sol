@@ -27,16 +27,12 @@ contract SofiaFeeProxy {
     /// @notice Address receiving collected fees (Gnosis Safe)
     address public feeRecipient;
 
-    /// @notice Fixed fee for creation operations (atoms/triples) in wei
-    /// @dev Default: 0.1 TRUST = 10^17 wei
-    uint256 public creationFixedFee;
-
-    /// @notice Fixed fee for deposit operations in wei
+    /// @notice Fixed fee per deposit operation in wei
     /// @dev Default: 0.1 TRUST = 10^17 wei
     uint256 public depositFixedFee;
 
     /// @notice Percentage fee for deposits (base 10000)
-    /// @dev Default: 200 = 2%
+    /// @dev Default: 500 = 5%
     uint256 public depositPercentageFee;
 
     /// @notice Mapping of whitelisted admin addresses
@@ -46,9 +42,6 @@ contract SofiaFeeProxy {
 
     /// @notice Emitted when fee recipient is updated
     event FeeRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
-
-    /// @notice Emitted when creation fixed fee is updated
-    event CreationFixedFeeUpdated(uint256 oldFee, uint256 newFee);
 
     /// @notice Emitted when deposit fixed fee is updated
     event DepositFixedFeeUpdated(uint256 oldFee, uint256 newFee);
@@ -96,14 +89,12 @@ contract SofiaFeeProxy {
     /// @notice Initializes the SofiaFeeProxy contract
     /// @param _ethMultiVault Address of the Intuition MultiVault contract
     /// @param _feeRecipient Address to receive collected fees (Gnosis Safe)
-    /// @param _creationFixedFee Initial fixed fee for creations (in wei)
-    /// @param _depositFixedFee Initial fixed fee for deposits (in wei)
+    /// @param _depositFixedFee Initial fixed fee per deposit (in wei)
     /// @param _depositPercentageFee Initial percentage fee for deposits (base 10000)
     /// @param _initialAdmins Array of initial admin addresses to whitelist
     constructor(
         address _ethMultiVault,
         address _feeRecipient,
-        uint256 _creationFixedFee,
         uint256 _depositFixedFee,
         uint256 _depositPercentageFee,
         address[] memory _initialAdmins
@@ -120,7 +111,6 @@ contract SofiaFeeProxy {
 
         ethMultiVault = IEthMultiVault(_ethMultiVault);
         feeRecipient = _feeRecipient;
-        creationFixedFee = _creationFixedFee;
         depositFixedFee = _depositFixedFee;
         depositPercentageFee = _depositPercentageFee;
 
@@ -135,46 +125,33 @@ contract SofiaFeeProxy {
 
     // ============ Fee Calculation Functions ============
 
-    /// @notice Calculate Sofia fee for a deposit
-    /// @param depositAmount Amount to be deposited
-    /// @return Total fee (fixed + percentage)
-    function calculateDepositFee(uint256 depositAmount) public view returns (uint256) {
-        uint256 percentageFee = (depositAmount * depositPercentageFee) / FEE_DENOMINATOR;
-        return depositFixedFee + percentageFee;
+    /// @notice Calculate Sofia fee for deposits
+    /// @param depositCount Number of deposits (non-zero assets)
+    /// @param totalDeposit Total amount being deposited
+    /// @return Total fee (fixed per deposit + percentage of total)
+    function calculateDepositFee(uint256 depositCount, uint256 totalDeposit) public view returns (uint256) {
+        uint256 fixedFee = depositFixedFee * depositCount;
+        uint256 percentageFee = (totalDeposit * depositPercentageFee) / FEE_DENOMINATOR;
+        return fixedFee + percentageFee;
     }
 
-    /// @notice Calculate Sofia fee for creation operations
-    /// @param count Number of items being created
-    /// @return Total fee (fixed fee * count)
-    function calculateCreationFee(uint256 count) public view returns (uint256) {
-        return creationFixedFee * count;
-    }
-
-    /// @notice Helper for frontend - get total cost for a deposit
+    /// @notice Helper for frontend - get total cost for a single deposit
     /// @param depositAmount Amount user wants to deposit
     /// @return Total amount user needs to send (deposit + fees)
     function getTotalDepositCost(uint256 depositAmount) external view returns (uint256) {
-        return depositAmount + calculateDepositFee(depositAmount);
+        return depositAmount + calculateDepositFee(1, depositAmount);
     }
 
-    /// @notice Helper for frontend - get total cost for creation
-    /// @param count Number of items to create
-    /// @param multiVaultCost Total cost required by MultiVault
+    /// @notice Helper for frontend - get total cost for createAtoms/createTriples
+    /// @param depositCount Number of non-zero deposits
+    /// @param totalDeposit Sum of all deposit amounts
+    /// @param multiVaultCost Total cost required by MultiVault (atomCost/tripleCost * count + totalDeposit)
     /// @return Total amount user needs to send
-    function getTotalCreationCost(uint256 count, uint256 multiVaultCost) external view returns (uint256) {
-        return multiVaultCost + calculateCreationFee(count);
+    function getTotalCreationCost(uint256 depositCount, uint256 totalDeposit, uint256 multiVaultCost) external view returns (uint256) {
+        return multiVaultCost + calculateDepositFee(depositCount, totalDeposit);
     }
 
     // ============ Admin Functions ============
-
-    /// @notice Update the creation fixed fee
-    /// @param newFee New fee in wei
-    function setCreationFixedFee(uint256 newFee) external onlyWhitelistedAdmin {
-        uint256 oldFee = creationFixedFee;
-        creationFixedFee = newFee;
-        emit CreationFixedFeeUpdated(oldFee, newFee);
-    }
-
     /// @notice Update the deposit fixed fee
     /// @param newFee New fee in wei
     function setDepositFixedFee(uint256 newFee) external onlyWhitelistedAdmin {
@@ -236,9 +213,14 @@ contract SofiaFeeProxy {
         }
 
         uint256 count = data.length;
-        uint256 sofiaFee = calculateCreationFee(count);
         uint256 atomCost = ethMultiVault.getAtomCost();
         uint256 totalDeposit = _sumArray(assets);
+
+        // Calculate fee: fixed fee per deposit + percentage of total deposits
+        uint256 depositCount = _countNonZero(assets);
+        uint256 sofiaFee = (depositFixedFee * depositCount) +
+            ((totalDeposit * depositPercentageFee) / FEE_DENOMINATOR);
+
         uint256 multiVaultCost = (atomCost * count) + totalDeposit;
         uint256 totalRequired = sofiaFee + multiVaultCost;
 
@@ -297,9 +279,14 @@ contract SofiaFeeProxy {
         }
 
         uint256 count = subjectIds.length;
-        uint256 sofiaFee = calculateCreationFee(count);
         uint256 tripleCost = ethMultiVault.getTripleCost();
         uint256 totalDeposit = _sumArray(assets);
+
+        // Calculate fee: fixed fee per deposit + percentage of total deposits
+        uint256 depositCount = _countNonZero(assets);
+        uint256 sofiaFee = (depositFixedFee * depositCount) +
+            ((totalDeposit * depositPercentageFee) / FEE_DENOMINATOR);
+
         uint256 multiVaultCost = (tripleCost * count) + totalDeposit;
         uint256 totalRequired = sofiaFee + multiVaultCost;
 
@@ -505,6 +492,17 @@ contract SofiaFeeProxy {
     function _sumArray(uint256[] calldata arr) internal pure returns (uint256 sum) {
         for (uint256 i = 0; i < arr.length; i++) {
             sum += arr[i];
+        }
+    }
+
+    /// @notice Count non-zero elements in array
+    /// @param arr Array to count
+    /// @return count Number of non-zero elements
+    function _countNonZero(uint256[] calldata arr) internal pure returns (uint256 count) {
+        for (uint256 i = 0; i < arr.length; i++) {
+            if (arr[i] > 0) {
+                count++;
+            }
         }
     }
 

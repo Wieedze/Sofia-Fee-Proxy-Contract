@@ -8,26 +8,34 @@ The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition
 
 ## Fee Structure
 
-| Operation | Fixed Fee | Percentage Fee |
-|-----------|-----------|----------------|
-| Create Atoms | 0 TRUST | 0% |
-| Create Triples | 0 TRUST | 0% |
-| Deposit | 0.1 TRUST | 5% |
+All fees are applied **per deposit** (added on top of the deposit amount):
+
+| Fee Type | Amount |
+|----------|--------|
+| Fixed fee | 0.1 TRUST per deposit |
+| Percentage fee | 5% of deposit amount |
+
+Fees apply to:
+- `deposit()` - direct deposits
+- `createAtoms()` - deposits made during atom creation
+- `createTriples()` - deposits made during triple creation
 
 ### Example
 
 For a 10 TRUST deposit:
 - Fixed fee: 0.1 TRUST
 - Percentage fee: 0.5 TRUST (5% of 10)
-- **Total fee: 0.6 TRUST**
-- User sends: 10.6 TRUST
-- Deposited to MultiVault: 10 TRUST
+- **Total Sofia fee: 0.6 TRUST**
+- **User sends: 10.6 TRUST**
+- **Deposited to MultiVault: 10 TRUST**
+
+Note: MultiVault may apply its own internal fees on deposits.
 
 ## Deployed Contract
 
 | Network | Address |
 |---------|---------|
-| Intuition Mainnet | `0x880E213224Ce5B6B8a01A21D4318819c67146533` |
+| Intuition Mainnet | `0x26F81d723Ad1648194FAA4b7E235105Fd1212c6c` |
 
 ## Installation
 
@@ -61,7 +69,6 @@ npm run deploy:mainnet
 
 Only whitelisted admins can call these functions:
 
-- `setCreationFixedFee(uint256)` - Update creation fee
 - `setDepositFixedFee(uint256)` - Update deposit fixed fee
 - `setDepositPercentageFee(uint256)` - Update deposit percentage (base 10000)
 - `setFeeRecipient(address)` - Update fee recipient
