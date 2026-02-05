@@ -4,7 +4,7 @@ Smart contract proxy for Intuition MultiVault with fee collection for the Sofia 
 
 ## Overview
 
-The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition MultiVault contract. It collects fees on transactions (atom/triple creation and deposits) and forwards them to a fee recipient address.
+The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition MultiVault contract. It collects fees on transactions (triple creation and deposits) and forwards them to a fee recipient address.
 
 ## Fee Structure
 
@@ -17,7 +17,6 @@ All fees are applied **per deposit** (added on top of the deposit amount):
 
 Fees apply to:
 - `deposit()` - direct deposits
-- `createAtoms()` - deposits made during atom creation
 - `createTriples()` - deposits made during triple creation
 
 ### Example
