@@ -28,10 +28,16 @@ const config: HardhatUserConfig = {
       chainId: 1155,
       accounts: [PRIVATE_KEY],
     },
+    intuitionTestnet: {
+      url: process.env.INTUITION_TESTNET_RPC_URL || "https://testnet.rpc.intuition.systems",
+      chainId: 13579,
+      accounts: [PRIVATE_KEY],
+    },
   },
   etherscan: {
     apiKey: {
-      intuition: "no-api-key-needed", // Blockscout doesn't require API key
+      intuition: "no-api-key-needed",
+      intuitionTestnet: "no-api-key-needed",
     },
     customChains: [
       {
@@ -40,6 +46,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://explorer.intuition.systems/api",
           browserURL: "https://explorer.intuition.systems",
+        },
+      },
+      {
+        network: "intuitionTestnet",
+        chainId: 13579,
+        urls: {
+          apiURL: "https://testnet.explorer.intuition.systems/api",
+          browserURL: "https://testnet.explorer.intuition.systems",
         },
       },
     ],

@@ -1,78 +1,62 @@
-# Sofia Fee Proxy Contract
+# Sofia Contracts — Intuition Fee Proxy monorepo
 
-Smart contract proxy for Intuition MultiVault with fee collection for the Sofia application.
+Monorepo for **Intuition Fee Proxy** V2 — upgradeable fee proxy + Factory + webapp.
 
-## Overview
+## Structure
 
-The SofiaFeeProxy contract acts as a proxy between Sofia users and the Intuition MultiVault contract. It collects fees on transactions (atom/triple creation and deposits) and forwards them to a fee recipient address.
-
-## Fee Structure
-
-All fees are applied **per deposit** (added on top of the deposit amount):
-
-| Fee Type | Amount |
-|----------|--------|
-| Fixed fee | 0.1 TRUST per deposit |
-| Percentage fee | 5% of deposit amount |
-
-Fees apply to:
-- `deposit()` - direct deposits
-- `createAtoms()` - deposits made during atom creation
-- `createTriples()` - deposits made during triple creation
-
-### Example
-
-For a 10 TRUST deposit:
-- Fixed fee: 0.1 TRUST
-- Percentage fee: 0.5 TRUST (5% of 10)
-- **Total Sofia fee: 0.6 TRUST**
-- **User sends: 10.6 TRUST**
-- **Deposited to MultiVault: 10 TRUST**
-
-Note: MultiVault may apply its own internal fees on deposits.
-
-## Deployed Contract
-
-| Network | Address |
-|---------|---------|
-| Intuition Mainnet | `0x26F81d723Ad1648194FAA4b7E235105Fd1212c6c` |
-
-## Installation
-
-```bash
-npm install
+```
+sofia-contracts/
+├── packages/
+│   ├── contracts/    # Solidity contracts (V1 legacy + V2 upgradeable + Factory)
+│   ├── sdk/          # Shared ABIs, addresses, types
+│   └── webapp/       # Vite + React Factory UI (factory.intuition.box)
+├── scripts/
+│   └── sync-abis.ts  # Copy compiled ABIs to SDK
+├── .claude/          # Project context for AI collaboration
+└── docs/             # Audit reports, announcements
 ```
 
-## Build
+## Requirements
+
+- [Bun](https://bun.sh) (package manager + runtime)
+- Node.js 20+ (for Hardhat compatibility)
+
+## Install
 
 ```bash
-npx hardhat compile
+bun install
 ```
 
-## Test
+## Common commands
 
 ```bash
-npm test
+# Compile contracts
+bun contracts:compile
+
+# Run contract tests
+bun contracts:test
+
+# Sync compiled ABIs to SDK
+bun sdk:sync
+
+# Dev server for webapp (http://localhost:3000)
+bun webapp:dev
+
+# Build webapp for production
+bun webapp:build
 ```
 
-## Deployment
+## Deployments
 
-```bash
-# Testnet
-npm run deploy:testnet
+### V1 (legacy, in production)
+- Mainnet: `0x26F81d723Ad1648194FAA4b7E235105Fd1212c6c`
 
-# Mainnet
-npm run deploy:mainnet
-```
+### V2 (in development)
+- Mainnet implementation: TBD
+- Mainnet Factory: TBD
+- Mainnet Sofia instance: TBD
 
-## Admin Functions
-
-Only whitelisted admins can call these functions:
-
-- `setDepositFixedFee(uint256)` - Update deposit fixed fee
-- `setDepositPercentageFee(uint256)` - Update deposit percentage (base 10000)
-- `setFeeRecipient(address)` - Update fee recipient
-- `setWhitelistedAdmin(address, bool)` - Add/remove admins
+See [packages/sdk/src/addresses.ts](./packages/sdk/src/addresses.ts) for all addresses.
 
 ## License
 
